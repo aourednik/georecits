@@ -7,7 +7,7 @@ Spatial mobility always involves at least two types of distances:
 
 GéoRécits allows you to do both in your web browser. It is written using HTML5, SVG and JavaScript. It uses the visualisation framework [D3js](https://github.com/d3/d3), version 5. Maps can be exported to SVG.
 
-[Full documentation is available HERE](https://ourednink.info/georecits)  
+[Full documentation is available HERE](https://ourednik.info/georecits/)
 
 ![GéoRécits journeys](/img/georecits1.png)
 
