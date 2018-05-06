@@ -1,0 +1,13 @@
+id,idperson,nameplace,duration,lon,lat
+"Khovsgol",1,"Khovsgol",0, 100.306972 ,50.518361
+"OulanBator",1,"Oulan-Bator",350,106.897743,47.909978
+"EPFL",1,"EPFL",0,6.566523,46.518893 
+"Bern",1,"Bern",0, 7.450829, 46.951602
+"Lausanne",2,"Lausanne",12,6.636700, 46.528931 
+"Geneve",2,"Genève",300, 6.147350, 46.211796
+"Zurich",1,"Zürich",168, 8.497569,47.379230
+"Prague",3,"Prague",120,14.446370, 50.079606
+"Paris",2,"Paris",0, 2.357351, 48.865550
+"Zurich3",3,"Zürich",500, 8.497569,47.379230
+"Oslo",3,"Oslo",0, 10.763824,59.913063
+"GOAL",1,"Neuchâtel",0, 6.929542, 46.999307

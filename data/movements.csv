@@ -1,0 +1,10 @@
+source,target,idperson,time
+"Khovsgol","OulanBator",1,540
+"OulanBator","Zurich",1,1200
+"Zurich","GOAL",1,60
+"Paris","Geneve",2,180
+"Geneve","Lausanne",2,50
+"Lausanne","GOAL",2,60
+"Oslo","Prague",3,300
+"Prague","Zurich3",3,240
+"Zurich3","GOAL",3,60

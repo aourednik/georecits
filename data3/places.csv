@@ -1,0 +1,9 @@
+id,idperson,nameplace,duration,lat,lon
+Lausanne,1,Lausanne Centre,1824, 46.528931 ,6.636700
+Geneve,1,Genève,6, 46.211796, 6.147350
+UNIL,1,UNIL,640,46.518893 ,6.566523
+Paris,1,Paris,48, 48.865550,2.357351
+Fribourg,1,Fribourg,30,46.806213,7.151808
+Poitiers,1,Poitiers,72,46.579893,0.337822
+Vevey,1,Vevey,16,46.460706,6.846431
+London,1,London,72,51.501813,-0.109869

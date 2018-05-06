@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta title="GéoRécits">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/d3-geo.v1.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
+    <style>
+        h1 {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
+            font-size: 13px;
+            position:fixed;
+            right:20px;
+            bottom: 20px;
+            padding:0;
+            margin:0;
+        }
+        button{
+            position:fixed;
+            top:20px;
+        }
+        #maptofile{
+            left:20px;
+        }
+        #nettofile{
+            right:20px;
+        }
+        #topomap {
+            float:left;
+            border:black solid 0.5px;
+        }
+        #network {
+            float:left;
+            border:black solid 0.5px;
+        }
+        #sqrtscale {
+            position:fixed;
+            top: 20px;
+            left: 51%;
+        }
+        circle:hover{
+            stroke:black;
+            stroke-width:2px;
+        }
+    </style>
+</head>
+<body>
+<h1>GéoRécits - <a href="https://ourednik.info/georecits">ourednik.info/georecits</a></h1>
+<button id="maptofile" onClick="saveSvg('topomap', 'georecit_map.svg')">Save Map SVG</button>
+<button id="nettofile" onClick="saveSvg('network', 'georecit_network.svg')">Save Network SVG</button>
+<div id="sqrtscale">√ line length <input type="checkbox" id="myCheck" onclick="GraphView()"></div>
+<svg id="topomap"></svg>
+<svg id="network"></svg>
+<script>
+var w = window,
+    doc = document,
+    el = doc.documentElement,
+    bod = doc.getElementsByTagName('body')[0],
+    wid = w.innerWidth || el.clientWidth || bod.clientWidth,
+    hei = w.innerHeight|| el.clientHeight|| bod.clientHeight;
+var width = wid/2 - 10,
+    height = hei-20;
+var topomap = d3.select("#topomap")
+    .attr("width",width)
+    .attr("height",height);
+var network = d3.select("#network")
+    .attr("width",width)
+    .attr("height",height);
+var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+var circlesizer, linewidthsizer, places, movements, basemap, p=Array();
+var sqrtscale = false; // this is for the network
+
+Promise.all([
+    d3.csv("data/places.csv"),
+    d3.csv("data/movements.csv"),
+    d3.json("data/basemap.geojson")
+]).then(([pla,mov,bas]) => {
+    places = pla;
+    movements = mov;
+    basemap = bas;
+    console.log(places);
+    console.log(movements);
+    places.forEach(place => { // keyed representation of places for later variables retrieval
+        p[place.id] = place;
+    });
+
+    // Set sizers
+    circlesizer = d3.scalePow().exponent(0.5).range([5, 25]).domain([
+        d3.min(places,function(d) { return +d.duration}),
+        d3.max(places,function(d) { return +d.duration})
+    ]);
+    linewidthsizer = d3.scaleLinear().range([1, 10]).domain([
+        d3.min(movements,function(d) { return +d.frequency}),
+        d3.max(movements,function(d) { return +d.frequency})
+    ]);
+
+    TopoView();
+
+    if (Object.keys(p).includes('GOAL')) { 
+        GraphViewGoal();
+    } else { 
+        GraphView();
+    }
+
+});
+
+function TopoView() {
+    /////////////////////////////////////////////////
+    // Topographic view.
+
+    var minlon = d3.min(places,function(d) { return +d.lon});
+    var minlat = d3.min(places,function(d) { return +d.lat});
+    var maxlon = d3.max(places,function(d) { return +d.lon});
+    var maxlat = d3.max(places,function(d) { return +d.lat});
+    var clon = (minlon+maxlon) / 2;
+    var clat = (minlat+maxlat) / 2;
+
+    var center = [clon,clat]  // in spherical coordinates, normaly
+    var offset = [width/2, height/2];
+    var scale  = (width - 1) / 2 / Math.PI; // shows the whole world
+    s = (Math.min(
+            360/Math.abs(Math.abs(minlon)-Math.abs(maxlon)),
+            180/Math.abs(Math.abs(minlat)-Math.abs(maxlat))
+        ));
+    scale = scale * 0.8 * s;
+
+    var projection = 
+         d3.geoMercator() 
+            .precision(0.1)
+            .scale(scale)
+            .center(center)
+            .translate(offset)
+        ;
+
+    var path = d3.geoPath().projection(projection);
+
+    var zoom = d3.zoom()
+        .scaleExtent([0.2, 30])
+        .on("zoom", zoomed);
+
+    topomap.call(zoom);
+            
+    topomap.append("g")
+        .selectAll("path")
+        .data(basemap.features)
+            .enter().append("path")
+            .attr("d", path)
+            .attr("fill", "lightgrey")
+            .attr("stroke","white")
+    ;
+    topomap.append("g")
+        .selectAll("circle")
+        .data(places.sort(function(a, b) { return b.duration - a.duration; }))
+        .enter().append("circle")
+            .attr("cx", function (d) { return projection([d.lon,d.lat])[0]; })
+            .attr("cy", function (d) { return projection([d.lon,d.lat])[1]; })
+            .attr("r", function (d) { return circlesizer(d.duration); })
+            .attr("fill", function (d) { return colorScale(d.idperson);})
+            .attr("fill-opacity", 0.7)
+    ;
+    linecoors = function(id) {return projection([p[id].lon,p[id].lat]);}
+    topomap.append("g")
+        .selectAll("line")
+        .data(movements.sort(function(a, b) { return b.frequency - a.frequency; }))
+        .enter().append("line")
+            .attr("x1", function (d) { return linecoors(d.source)[0]; })
+            .attr("y1", function (d) { return linecoors(d.source)[1]; })
+            .attr("x2", function (d) { return linecoors(d.target)[0]; })
+            .attr("y2", function (d) { return linecoors(d.target)[1]; })
+            .attr("stroke", function (d) { return colorScale(d.idperson); })
+            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency); })
+    ;
+
+    topomap.append("g")
+        .selectAll("text")
+        .data(places)
+            .enter()
+            .append("text")
+            .text(function(d) { return d.nameplace; })
+            .style("fill", "#555")
+            .style("font-family", "Arial")
+            .style("font-size", "9px")
+            .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) ; })
+            .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) ; })
+            .style("pointer-events", "none"); // to prevent mouseover/drag capture
+
+    function zoomed() {
+        topomap.selectAll("g")
+            .attr("transform", d3.event.transform) 
+            .style("stroke-width", 1 / d3.event.transform.k + "px")
+        ;
+        topomap.selectAll("g").selectAll("line")
+            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency) / d3.event.transform.k; })
+        ;
+        topomap.selectAll("g").selectAll("circle") // keep circles the same size
+            // .attr("r",function(d) {return d3.select(this).attr("r") - d3.event.transform.k;}) // selector works but function does not
+            .attr("r",function(d) {return circlesizer(d.duration) / d3.event.transform.k;})
+        ;
+        topomap.selectAll("g").selectAll("text")
+            .style("font-size", 9 / d3.event.transform.k + "px")
+            .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) / d3.event.transform.k ; })
+            .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) / d3.event.transform.k ; })
+        ;
+    }
+}
+
+function GraphView() {
+    /////////////////////////////////////////////////
+    // GRAPH VIEW 1 --------------------------------
+
+    d3.select("#sqrtscale").style( "visibility", "visible");
+
+    var linesizer = function(tm) {
+        sqrtscale = document.getElementById("myCheck").checked;
+        var sumtimes = d3.sum(movements,function(d) { return +d.time});
+        var w = width;
+        var h = height;
+        var t = tm;
+        if (sqrtscale) {
+            sumtimes = Math.sqrt(sumtimes)  ;
+            t = Math.sqrt(tm) ;
+        }
+        var multiplier = Math.min(
+            w / sumtimes,
+            h / sumtimes
+        );
+        console.log("sumtimes: " + sumtimes + ", multiplier: " + multiplier);
+        return t * multiplier ;
+    };
+
+
+    network.selectAll('*').remove();
+    var simulation = d3.forceSimulation()
+        .force('charge', d3.forceManyBody()
+            .strength(-200)
+            .distanceMax(width/2)
+        )
+        .force('center', d3.forceCenter(width / 2, height / 2)) //  translates nodes uniformly so that the mean position of all nodes (the center of mass if all nodes have equal weight) is at the given position ⟨x,y⟩
+        .force('link',d3.forceLink()
+            .id(function(d) { return d.id; })
+            .distance(function(d) { return linesizer(d.time); }).strength(2)
+        )
+        //.force("y", d3.forceY(0))
+        //.force("x", d3.forceX(0))
+        //.force("r",d3.forceRadial(width/2).strength(0.1))
+        .on('tick', ticked);
+    ;
+    simulation.nodes(places);
+    simulation.force('link').links(movements);
+    console.log(simulation);
+    var nodes = network.selectAll('circle')
+        .data(places).enter()
+            .append('g')
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended)
+                );
+    ;
+    nodes.append('circle')
+            .attr('r', function (d) { return circlesizer(d.duration); })
+            .attr('stroke','none')
+            .attr('fill',function (d) { return colorScale(d.idperson);})
+    ;
+    nodes.append("text")
+        .text(function(d) { return d.nameplace; })
+        .style("fill", "#555")
+        .style("font-family", "Arial")
+        .style("font-size", "9px")
+        .attr("x", function (d) { return  (circlesizer(d.duration)/1.414) ; })
+        .attr("y", function (d) { return -  (circlesizer(d.duration)/1.414) ; })
+        .style("pointer-events", "none"); // to prevent mouseover/drag capture
+
+    var links = network.selectAll('lines')
+        .data(movements)
+        .enter()
+            .append("line")
+            .attr("stroke", function (d) { return colorScale(d.idperson); })
+            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency); })
+    ;
+
+    function ticked() {
+        
+        // width and height are involved, so the nodes cannot escape outside the window. 
+        nodes         
+            .attr("transform", function(d){return "translate("+
+                Math.max(25, Math.min(width - 25, d.x))
+                +","+
+                Math.max(25, Math.min(height - 25, d.y))
+            +")"})
+        ;
+        // links just follow the nodes
+        links
+            .attr("x1", function(d) { return Math.max(25, Math.min(width - 25, d.source.x)); })
+            .attr("y1", function(d) { return Math.max(25, Math.min(height - 25, d.source.y)); })
+            .attr("x2", function(d) { return Math.max(25, Math.min(width - 25, d.target.x)); })
+            .attr("y2", function(d) { return Math.max(25, Math.min(height - 25, d.target.y)); })
+        ;
+    }
+
+    function dragstarted() {
+        if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        d3.event.subject.fx = d3.event.subject.x;
+        d3.event.subject.fy = d3.event.subject.y;
+    }
+    function dragged() {
+        d3.event.subject.fx = d3.event.x;
+        d3.event.subject.fy = d3.event.y;
+    }
+    function dragended() {
+        if (!d3.event.active) simulation.alphaTarget(0);
+        d3.event.subject.fx = null;
+        d3.event.subject.fy = null;
+    } 
+}
+
+function GraphViewGoal() {
+    /////////////////////////////////////////////////
+    // GRAPH VIEW GOAL --------------------------------
+
+    d3.select("#sqrtscale").style( "visibility", "hidden");
+
+    network.selectAll('*').remove();
+
+    network.append('rect')
+        .attr('width',width*0.9)
+        .attr('height',25)
+        .attr("transform", "translate(" +width * 0.05 + ",25)")
+        .attr("rx",10)
+        .attr("ry",10)
+    ;
+    network.append('text')
+        .text(places.filter(p => p.id == "GOAL")[0].nameplace)
+        .attr('x','50%')
+        .attr('y','43')
+        .attr("alignement-base","middle")
+        .attr('fill','white')
+        .attr('letter-spacing','2px') // works only in Chrome and Safari
+    ;
+    
+    var iplaces = d3.nest()
+        .key(function(d) { return d.idperson;})
+        .rollup(function(d) { 
+        return d3.sum(d, function(g) {return g.duration; });
+    }).entries(places);
+    console.log(iplaces);
+    var imovements = d3.nest()
+        .key(function(d) { return d.idperson;})
+        .rollup(function(d) { 
+        return d3.sum(d, function(g) {return g.time; });
+    }).entries(movements);
+    console.log(imovements);
+    var individuals = iplaces.concat(imovements);
+    var individuals = d3.nest()
+        .key(function(d) { return d.key;})
+        .rollup(function(d) { 
+        return d3.sum(d, function(g) {return g.value; });
+    }).entries(individuals);
+    console.log("individuals : " );
+    console.log(individuals);
+    var xpositions = Array();
+    individuals.forEach(individual => { 
+        xpositions[individual.key] = (individuals.indexOf(individual) + 1) * width / (individuals.length + 1);
+    });
+    // console.log("xpositions : " + xpositions);
+    var maxvlength = d3.max(individuals,function(d) { return +d.value});
+    console.log(maxvlength);
+    var vscaler = function(l) {
+        return (l / maxvlength) * (height*0.8);
+    };
+
+    individuals.forEach(individual => { 
+        network.append('line')
+                .attr("x1", xpositions[individual.key])
+                .attr("y1", 50)
+                .attr("x2", xpositions[individual.key])
+                .attr("y2", vscaler(individual.value))
+                .attr("stroke", colorScale(individual.key))
+                .attr("stroke-width", 2)
+        ;
+        // etaps
+        var mov = movements.filter(m => m.idperson == individual.key);
+        console.log(mov);
+        var start = mov.filter(m => m.target == "GOAL");
+        console.log(start);
+        var y2 = 50;
+        var y1 = y2;
+        while (start.length > 0) {
+            y1 = y2;
+            y2 = y1 + vscaler(start[0].time);
+            network.append('line')
+                .attr("x1", xpositions[individual.key])
+                .attr("y1", y1)
+                .attr("x2", xpositions[individual.key])
+                .attr("y2", y2)
+                .attr("stroke", colorScale(individual.key))
+                .attr("stroke-width", 2)
+            ;
+            network.append('text')
+                .text(
+                    places.filter(p => p.id == start[0].source)[0].nameplace
+                    + " → " + 
+                    places.filter(p => p.id == start[0].target)[0].nameplace
+                )
+                .style("fill", colorScale(individual.key))
+                .style("font-family", "Arial")
+                .style("font-size", "9px")
+                .attr("x", xpositions[individual.key] + 10)
+                .attr("y", (y2+y1)/2 + 3)
+                .style("pointer-events", "none"); // to prevent mouseover/drag capture
+            ;
+            y1 = y2;
+            y2 = y1 + vscaler(places.filter(p => p.id == start[0].source)[0].duration);
+            console.log(y2);
+            network.append('line')
+                .attr("x1", xpositions[individual.key])
+                .attr("y1", y1)
+                .attr("x2", xpositions[individual.key])
+                .attr("y2", y2)
+                .attr("stroke", colorScale(individual.key))
+                .attr("stroke-width",6)
+            ;
+            network.append('text')
+                .text(places.filter(p => p.id == start[0].source)[0].nameplace)
+                .style("fill", colorScale(individual.key))
+                .style("font-family", "Arial")
+                .style("font-size", "9px")
+                .attr("x", xpositions[individual.key] + 10)
+                .attr("y", (y2+y1)/2 + 3)
+                .style("pointer-events", "none"); // to prevent mouseover/drag capture
+            ;
+            start = mov.filter(m => m.target == start[0].source);
+        }
+    });
+}
+
+
+function saveSvg(svgEl, name) {
+    var svgEl = document.getElementById(svgEl);
+    svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    var svgData = svgEl.outerHTML;
+    var preface = '<?xml version="1.0" standalone="no"?>\r\n';
+    var svgBlob = new Blob([preface, svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = name;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+</script>
+</body>
+</html>
