@@ -9,6 +9,10 @@ GéoRécits allows you to do both in your web browser. It is written using HTML5
 
 [Full documentation is available HERE](https://ourednik.info/georecits/)
 
+Current version works best in Firefox.
+
+Example data are available in folders _data_ (default), _data2_ and _data3_.
+
 ![GéoRécits journeys](/img/georecits1.png)
 
 ![GéoRécits spatial portrait](/img/georecits3.png)
