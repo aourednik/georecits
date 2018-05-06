@@ -4,7 +4,10 @@
     "description": "An application for mapping journeys and lived spaces in a web browser",
     "main": "index.html",
     "dependencies": {
-      "d3": ">5"
+      "d3": "5.1.0",
+      "d3-geo":"1.10.0",
+      "d3-geo-projection": "2.4.0",
+      "d3-scale-chromatic": "0.3"
     },
     "repository": {
       "type": "git",
