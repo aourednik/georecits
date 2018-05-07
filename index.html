@@ -13,15 +13,15 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
- -->
+-->
 <html>
 <head>
     <meta charset="utf-8">
     <meta title="GéoRécits">
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src="https://d3js.org/d3-geo.v1.min.js"></script>
-    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
-    <script src="https://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
+    <script src="d3/d3.v5.min.js"></script>
+    <script src="d3/d3-geo.v1.min.js"></script>
+    <script src="d3/d3-geo-projection.v2.min.js"></script>
+    <script src="d3/d3-scale-chromatic.v0.3.min.js"></script>
     <style>
         h1 {
             font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
@@ -101,15 +101,19 @@ Promise.all([
         p[place.id] = place;
     });
 
-    // Set sizers
-    circlesizer = d3.scalePow().exponent(0.5).range([5, 25]).domain([
-        d3.min(places,function(d) { return +d.duration}),
-        d3.max(places,function(d) { return +d.duration})
-    ]);
-    linewidthsizer = d3.scaleLinear().range([1, 10]).domain([
-        d3.min(movements,function(d) { return +d.frequency}),
-        d3.max(movements,function(d) { return +d.frequency})
-    ]);
+    // Set sizers, defaulting 2 and 10 for missing values for frequency and duration
+    circlesizer = places[0].duration ? 
+        d3.scalePow().exponent(0.5).range([5, 25]).domain([
+            d3.min(places,function(d) { return +d.duration}),
+            d3.max(places,function(d) { return +d.duration})
+        ]) : function (d) {return 10;}
+    ;
+    linewidthsizer = movements[0].frequency ?
+        d3.scaleLinear().range([1, 10]).domain([
+            d3.min(movements,function(d) { return +d.frequency}),
+            d3.max(movements,function(d) { return +d.frequency})
+        ]) : function (d) {return 2;}
+    ;
 
     TopoView();
 
@@ -185,7 +189,7 @@ function TopoView() {
             .attr("x2", function (d) { return linecoors(d.target)[0]; })
             .attr("y2", function (d) { return linecoors(d.target)[1]; })
             .attr("stroke", function (d) { return colorScale(d.idperson); })
-            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency); })
+            .attr("stroke-width",function (d) { return linewidthsizer( d.frequency ) ; })
     ;
 
     topomap.append("g")
@@ -210,7 +214,7 @@ function TopoView() {
             .attr("stroke-width",function (d) { return linewidthsizer(d.frequency) / d3.event.transform.k; })
         ;
         topomap.selectAll("g").selectAll("circle") // keep circles the same size
-            // .attr("r",function(d) {return d3.select(this).attr("r") - d3.event.transform.k;}) // selector works but function does not
+            // .attr("r",function(d) {return d3.select(this).attr("r") - d3.event.transform.k;}) // selector works but function does not :-)
             .attr("r",function(d) {return circlesizer(d.duration) / d3.event.transform.k;})
         ;
         topomap.selectAll("g").selectAll("text")
