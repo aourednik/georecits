@@ -14,6 +14,8 @@ GéoRécits allows you to map both in your web browser. It is written using HTML
 In the newest, experimental, version, you can __drag and drop__ files to see instantly rendeders maps.
 This version also gives you advice on repairing misconfigured data files. It is [available for oline use HERE](https://ourednik.info/georecits/v02/).
 
+You can also test the stable 01 version online [HERE (lived spaces)](https://ourednik.info/georecits/v01_livedspaces/) and [HERE (journeys)](https://ourednik.info/georecits/v01_journeys/).
+
 ## Offline use
 
 For offline use, the version 01 and 02 both works best in _Firefox_ (v. > 54) or _MS Edge_. (_Chrome_ and _Safari_ block FetchAPI in D3 from accessing local csv and json files).
