@@ -42,43 +42,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         #nettofile{
             right:20px;
         }
-        .dropzone {
-            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
-            font-size:11px;
-            position:fixed;
-            color:lightgrey;
-            left: 50%;
-            transform: translateX(-50%);    
-            top:17px;
-            width: 60%;
-            text-align: center;
-        }
-        #dropzone1, #dropzone2 {
-            position: absolute;
-            width:45%;
-            padding: 3px;
-            height:20px;
-            background-color: lightgrey;
-            filter:blur(5px);
-        }
-        #dropzone1 {
-            left:0;
-        }
-        #dropzone2 {
-            right:0;
-        }
-        #dropzone1text, #dropzone2text {
-            position: absolute;
-            width:45%;
-            padding: 6px;
-            color:white;
-        }
-        #dropzone1text {
-            left:0;
-        }
-        #dropzone2text {
-            right:0;
-        }
         #topomap {
             float:left;
             border:black solid 0.5px;
@@ -89,7 +52,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         }
         #sqrtscale {
             position:fixed;
-            bottom: 20px;
+            top: 20px;
             left: 51%;
         }
         circle:hover{
@@ -102,12 +65,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <h1>GéoRécits - <a href="https://ourednik.info/georecits">ourednik.info/georecits</a></h1>
 <button id="maptofile" onClick="saveSvg('topomap', 'georecit_map.svg')">Save Map SVG</button>
 <button id="nettofile" onClick="saveSvg('network', 'georecit_network.svg')">Save Network SVG</button>
-<div class="dropzone" >
-    <div id="dropzone1"></div>
-    <div id="dropzone2"></div>
-    <div id="dropzone1text" ondrop="dropHandler(event,1);" ondragover="dragOverHandler(event,1);" ondragleave="dragLeaveHandler(event,1)">Drag places.csv here...</div>
-    <div id="dropzone2text" ondrop="dropHandler(event,2);" ondragover="dragOverHandler(event,2);" ondragleave="dragLeaveHandler(event,2)">Drag movements.csv here...</div>
-</div>
 <div id="sqrtscale">√ line length <input type="checkbox" id="myCheck" onclick="GraphView()"></div>
 <svg id="topomap"></svg>
 <svg id="network"></svg>
@@ -127,7 +84,7 @@ var network = d3.select("#network")
     .attr("width",width)
     .attr("height",height);
 var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-var circlesizer, linewidthsizer, places, movements, basemap, p;
+var circlesizer, linewidthsizer, places, movements, basemap, p=Array();
 var sqrtscale = false; // this is for the network
 
 Promise.all([
@@ -138,70 +95,11 @@ Promise.all([
     places = pla;
     movements = mov;
     basemap = bas;
-    // console.log(places);
-    // console.log(movements);
-
-    definepandsizers();
-
-    TopoView();
-
-    if (Object.keys(p).includes('GOAL')) { 
-        GraphViewGoal();
-    } else { 
-        GraphView();
-    }
-
-});
-
-function definepandsizers() {
-
-    p=Array();
-
+    console.log(places);
+    console.log(movements);
     places.forEach(place => { // keyed representation of places for later variables retrieval
         p[place.id] = place;
     });
-
-    /// use the occation for input error handling: 
-
-    var placesCount = d3.nest()
-        .key(function(d) { return d.id; })
-        .rollup(function(v) { return v.length; })
-        .entries(places);
-    console.log("placesCount", placesCount);
-    var duplicateplaces = placesCount.filter(p => p.value > 1);
-    if (duplicateplaces.length > 0) {
-        var duplicateplacest = Array();
-        duplicateplaces.forEach(place => { // keyed representation of places for later variables retrieval
-            duplicateplacest[place.key] = place.value;
-        });
-        console.log("duplicateplaces", duplicateplaces.length);
-        console.log("duplicateplacest", duplicateplacest);
-        alert(
-            "The following place id's appear more than once. Please verify places.csv : \n\n" + 
-            Object.keys(duplicateplacest).join('\n')
-            + "\nSee the documentation on ourednik.info/georecits"
-        );
-    }
-    var movementPlaces = Array();
-    movements.forEach(m => { 
-        movementPlaces.push(m.source);
-        movementPlaces.push(m.target);
-    });
-    console.log("movementPlaces", movementPlaces);
-    var placelessmovements = movementPlaces.filter(m => ! Object.keys(p).includes(m));
-    if (placelessmovements.length > 0) {
-        console.log("placeless movements", placelessmovements.length);
-        console.log("duplicateplacest", placelessmovements);
-        network.selectAll('*').remove();
-        alert(
-            "The following movements in movements.csv refer to places without coordinates. \nPlease add these places to places.csv or remove them from your movements.csv file : \n\n" + 
-            placelessmovements.join('\n')
-            + "\n" +"See the documentation on ourednik.info/georecits"
-        );
-    }
-
-    ///
-
 
     // Set sizers, defaulting 2 and 10 for missing values for frequency and duration
     circlesizer = places[0].duration ? 
@@ -217,13 +115,19 @@ function definepandsizers() {
         ]) : function (d) {return 2;}
     ;
 
-}
+    TopoView();
+
+    if (Object.keys(p).includes('GOAL')) { 
+        GraphViewGoal();
+    } else { 
+        GraphView();
+    }
+
+});
 
 function TopoView() {
     /////////////////////////////////////////////////
     // Topographic view.
-
-    topomap.selectAll('*').remove();
 
     var minlon = d3.min(places,function(d) { return +d.lon});
     var minlat = d3.min(places,function(d) { return +d.lat});
@@ -275,6 +179,18 @@ function TopoView() {
             .attr("fill", function (d) { return colorScale(d.idperson);})
             .attr("fill-opacity", 0.7)
     ;
+    linecoors = function(id) {return projection([p[id].lon,p[id].lat]);}
+    topomap.append("g")
+        .selectAll("line")
+        .data(movements.sort(function(a, b) { return b.frequency - a.frequency; }))
+        .enter().append("line")
+            .attr("x1", function (d) { return linecoors(d.source)[0]; })
+            .attr("y1", function (d) { return linecoors(d.source)[1]; })
+            .attr("x2", function (d) { return linecoors(d.target)[0]; })
+            .attr("y2", function (d) { return linecoors(d.target)[1]; })
+            .attr("stroke", function (d) { return colorScale(d.idperson); })
+            .attr("stroke-width",function (d) { return linewidthsizer( d.frequency ) ; })
+    ;
 
     topomap.append("g")
         .selectAll("text")
@@ -288,19 +204,6 @@ function TopoView() {
             .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) ; })
             .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) ; })
             .style("pointer-events", "none"); // to prevent mouseover/drag capture
-
-    linecoors = function(id) {return projection([p[id].lon,p[id].lat]);}
-    topomap.append("g")
-        .selectAll("line")
-        .data(movements.sort(function(a, b) { return b.frequency - a.frequency; }))
-        .enter().append("line")
-            .attr("x1", function (d) { return linecoors(d.source)[0]; })
-            .attr("y1", function (d) { return linecoors(d.source)[1]; })
-            .attr("x2", function (d) { return linecoors(d.target)[0]; })
-            .attr("y2", function (d) { return linecoors(d.target)[1]; })
-            .attr("stroke", function (d) { return colorScale(d.idperson); })
-            .attr("stroke-width",function (d) { return linewidthsizer( d.frequency ) ; })
-    ;
 
     function zoomed() {
         topomap.selectAll("g")
@@ -327,7 +230,6 @@ function GraphView() {
     // GRAPH VIEW 1 --------------------------------
 
     d3.select("#sqrtscale").style( "visibility", "visible");
-    network.selectAll('*').remove();
 
     var linesizer = function(tm) {
         sqrtscale = document.getElementById("myCheck").checked;
@@ -347,6 +249,8 @@ function GraphView() {
         return t * multiplier ;
     };
 
+
+    network.selectAll('*').remove();
     var simulation = d3.forceSimulation()
         .force('charge', d3.forceManyBody()
             .strength(-200)
@@ -436,19 +340,20 @@ function GraphViewGoal() {
     // GRAPH VIEW GOAL --------------------------------
 
     d3.select("#sqrtscale").style( "visibility", "hidden");
+
     network.selectAll('*').remove();
 
     network.append('rect')
         .attr('width',width*0.9)
         .attr('height',25)
-        .attr("transform", "translate(" +width * 0.05 + ",50)")
+        .attr("transform", "translate(" +width * 0.05 + ",25)")
         .attr("rx",10)
         .attr("ry",10)
     ;
     network.append('text')
         .text(places.filter(p => p.id == "GOAL")[0].nameplace)
         .attr('x','50%')
-        .attr('y','68')
+        .attr('y','43')
         .attr("alignement-base","middle")
         .attr('fill','white')
         .attr('letter-spacing','2px') // works only in Chrome and Safari
@@ -457,16 +362,14 @@ function GraphViewGoal() {
     var iplaces = d3.nest()
         .key(function(d) { return d.idperson;})
         .rollup(function(d) { 
-            return d3.sum(d, function(g) {return g.duration; });
-        })
-        .entries(places);
+        return d3.sum(d, function(g) {return g.duration; });
+    }).entries(places);
     console.log(iplaces);
     var imovements = d3.nest()
         .key(function(d) { return d.idperson;})
         .rollup(function(d) { 
-            return d3.sum(d, function(g) {return g.time; });
-        })
-        .entries(movements);
+        return d3.sum(d, function(g) {return g.time; });
+    }).entries(movements);
     console.log(imovements);
     var individuals = iplaces.concat(imovements);
     var individuals = d3.nest()
@@ -490,7 +393,7 @@ function GraphViewGoal() {
     individuals.forEach(individual => { 
         network.append('line')
                 .attr("x1", xpositions[individual.key])
-                .attr("y1", 75)
+                .attr("y1", 50)
                 .attr("x2", xpositions[individual.key])
                 .attr("y2", vscaler(individual.value))
                 .attr("stroke", colorScale(individual.key))
@@ -501,7 +404,7 @@ function GraphViewGoal() {
         console.log(mov);
         var start = mov.filter(m => m.target == "GOAL");
         console.log(start);
-        var y2 = 75;
+        var y2 = 50;
         var y1 = y2;
         while (start.length > 0) {
             y1 = y2;
@@ -566,87 +469,6 @@ function saveSvg(svgEl, name) {
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
-}
-
-var promiseCSVparse = function(string) {
-    return new Promise(function (resolve, reject){
-        resolve(d3.csvParse(string));
-    });
-}
-
-
-function dropHandler(ev,zone) {
-    ev.preventDefault();     // Prevent default behavior (Prevent file from being opened)
-    d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
-    d3.select('#dropzone' + zone ).style('filter','blur(5px)');
-    var csvcontent, file;
-    if (ev.dataTransfer.items) {
-        // Use DataTransferItemList interface to access the file(s)
-        for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-            // If dropped items aren't files, reject them
-            if (ev.dataTransfer.items[i].kind === 'file') {
-                file = ev.dataTransfer.items[i].getAsFile();
-                // console.log('... file[' + i + '].name = ' + file.name);
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    csvcontent = event.target.result;
-                    //console.log(d3.csvParse(csvcontent));
-
-                    if (zone == 1) {
-                        // console.log("direct",d3.csvParse(csvcontent)); // csvparse, ulike csv does not return a promise
-                        promiseCSVparse(csvcontent).then(function(pr) { // not sure if promise is needed but this is one in any case
-                            places = pr;
-                            runprepared();
-                        });
-                    } else {
-                        movements = d3.csvParse(csvcontent);
-                        runprepared();
-                    }
-
-                    function runprepared() {
-                        console.log(file);
-                        // console.log("places", places);
-                        // console.log("movements", movements);
-                        console.log("csvcontent", csvcontent);
-                        definepandsizers();
-                        console.log("p", p); 
-            
-                        TopoView();
-                        if (Object.keys(p).includes('GOAL')) { 
-                            GraphViewGoal();
-                        } else { 
-                            GraphView();
-                        }
-                    }
-                };
-                reader.readAsText(file); // this calls the reader.onload
-                // console.log(reader);
-            }
-        }
-    } else {
-        // Use DataTransfer interface to access the file(s)
-        for (var i = 0; i < ev.dataTransfer.files.length; i++) {
-            console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
-        }
-    } 
-    removeDragData(ev) // Pass event to removeDragData for cleanup
-}
-function dragOverHandler(ev,zone) {
-    ev.preventDefault(); // Prevent default behavior (Prevent file from being opened as such by the browser)
-    d3.select('#dropzone' + zone + 'text').style('font-weight','bold');
-    d3.select('#dropzone' + zone ).style('filter','blur(9px)');
-}
-function dragLeaveHandler(ev,zone) {
-    ev.preventDefault(); // Prevent default behavior (Prevent file from being opened as such by the browser)
-    d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
-    d3.select('#dropzone' + zone ).style('filter','blur(5px)');
-}
-function removeDragData(ev,zone) {
-    if (ev.dataTransfer.items) {
-        ev.dataTransfer.items.clear();// Use DataTransferItemList interface to remove the drag data
-    } else {
-        ev.dataTransfer.clearData(); // Use DataTransfer interface to remove the drag data
-    }
 }
 
 </script>
