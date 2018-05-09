@@ -35,3 +35,6 @@ See [running example here](https://ourednik.info/georecits/v02_journeys/).
 See [running example here](https://ourednik.info/georecits/v02/).
 
 ![GéoRécits spatial portrait](/img/georecits3.png)
+
+
+![GéoRécits spatial portrait](/img/georecits02.gif)
