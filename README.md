@@ -5,17 +5,18 @@ Spatial mobility always involves at least two types of distances:
 - the _topographical distance_ traveled on the surface of the Earth and
 - the _time distance_ taken to do so.
 
-GéoRécits allows you to map both in your web browser. It is written using HTML5, SVG and JavaScript. It uses the visualisation framework [D3js](https://github.com/d3/d3), version 5. __Drag and drop__ files to see instantly rendeders maps. Maps can be exported to SVG, editable in _Illustrator_ (CC and above) or _Inkscape_.
+GéoRécits allows you to map both in your web browser. It is written using HTML5, SVG and JavaScript. It uses the visualisation framework [D3js](https://github.com/d3/d3), version 5. Maps can be exported to SVG, editable in _Illustrator_ (CC and above) or _Inkscape_.
 
 [Full documentation is available HERE](https://ourednik.info/georecits/)
 
 ## Online version
 
-The newest [online version of GéoRécits is available HERE](https://ourednik.info/georecits/v02/).
+In the newest, experimental, version, you can __drag and drop__ files to see instantly rendeders maps.
+This version also gives you advice on repairing misconfigured data files. It is [available for oline use HERE](https://ourednik.info/georecits/v02/).
 
 ## Offline use
 
-For offline use, the current version works best in _Firefox_ (v. > 54) or _MS Edge_. (_Chrome_ and _Safari_ block FetchAPI in D3 from accessing local csv and json files).
+For offline use, the version 01 and 02 both works best in _Firefox_ (v. > 54) or _MS Edge_. (_Chrome_ and _Safari_ block FetchAPI in D3 from accessing local csv and json files).
 
 ## Examples
 
