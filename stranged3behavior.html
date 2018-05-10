@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<script src="d3/d3.v5.min.js"></script>
+</head>
+<body>
+<script>
+var space;
+
+var csv1 = 
+`id,idperson,nameplace
+A,1,Prague
+B,1,Lausanne 
+C,1,Neuchâtel`
+
+var csv2 = 
+`source,target,idperson,v1
+"A","B",1,540
+"B","C",1,1200`
+
+var parsedcsv1 = d3.csvParse(csv1);
+var parsedcsv2 = d3.csvParse(csv2);
+
+space = {
+	'places' : parsedcsv1,
+	'movements' : parsedcsv2
+};
+
+console.log("space",space);
+
+run();
+
+function run() {
+	var simulation = d3.forceSimulation()
+			.force('link',d3.forceLink()
+				.id(function(d) { return d.id; })
+				.distance(function(d) { return d.time; })
+			)
+	;
+	var places = space['places']; 
+	var movements = space['movements'];
+	simulation.nodes(places);
+	// uncommenting the line below breaks space['movements'] . Why?
+	//simulation.force('link').links(movements);
+}
+
+</script>
+</body>
+</html>
