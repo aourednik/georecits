@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             font-size: 13px;
             position:fixed;
             right:20px;
-            bottom: 20px;
+            bottom: 15px;
             padding:0;
             margin:0;
         }
@@ -36,12 +36,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             position:fixed;
             top:20px;
         }
-        #maptofile{
-            left:20px;
-        }
-        #nettofile{
-            right:20px;
-        }
+        #maptofile{left:20px;}
+        #nettofile{right:20px;}
         .dropzone {
             font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
             font-size:11px;
@@ -61,36 +57,35 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             background-color: lightgrey;
             filter:blur(5px);
         }
-        #dropzone1 {
-            left:0;
-        }
-        #dropzone2 {
-            right:0;
-        }
+        #dropzone1 {left:0;}
+        #dropzone2 {right:0;}
         #dropzone1text, #dropzone2text {
             position: absolute;
             width:45%;
             padding: 6px;
             color:white;
         }
-        #dropzone1text {
-            left:0;
-        }
-        #dropzone2text {
-            right:0;
-        }
+        #dropzone1text {left:0;}
+        #dropzone2text {right:0;}
         #topomap {
-            float:left;
+            position:fixed;
+            top:5px;
+            left:5px;
             border:black solid 0.5px;
         }
         #network {
-            float:left;
+            position:fixed;
+            top:5px;
+            right:5px;
             border:black solid 0.5px;
         }
         #sqrtscale {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
+            font-size: 13px;
+            z-index: 1000;
             position:fixed;
-            bottom: 20px;
-            left: 51%;
+            bottom: 14px;
+            left: 52%;
         }
         circle:hover{
             stroke:black;
@@ -118,8 +113,8 @@ var w = window,
     bod = doc.getElementsByTagName('body')[0],
     wid = w.innerWidth || el.clientWidth || bod.clientWidth,
     hei = w.innerHeight|| el.clientHeight|| bod.clientHeight;
-var width = wid/2 - 10,
-    height = hei-20;
+var width = wid/2 - 8,
+    height = hei-10;
 var topomap = d3.select("#topomap")
     .attr("width",width)
     .attr("height",height);
@@ -127,7 +122,7 @@ var network = d3.select("#network")
     .attr("width",width)
     .attr("height",height);
 var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-var circlesizer, linewidthsizer, places, movements, basemap, p;
+var circlesizer, linewidthsizer, places, movements, basemap, p, placelessmovements = Array(), movementsBackup;
 var sqrtscale = false; // this is for the network
 
 Promise.all([
@@ -138,85 +133,92 @@ Promise.all([
     places = pla;
     movements = mov;
     basemap = bas;
-    // console.log(places);
-    // console.log(movements);
+    render();
+});
 
+function render() {
+    //places = places.filter(p => p.lat != 'placeless') // error handling can add placeless places
+    console.log("places",places);
+    console.log("movements",movements);
+    movementsBackup = movements;
     definepandsizers();
-
     TopoView();
-
-    if (Object.keys(p).includes('GOAL')) { 
+    var targets = Array();
+    movements.forEach(movement => { // keyed representation of places for later variables retrieval
+        targets.push(movement.target);
+    });
+    console.log("targets",targets);
+    if (Object.keys(p).includes('GOAL') & targets.includes('GOAL') ) { 
         GraphViewGoal();
     } else { 
         GraphView();
     }
-
-});
+}
 
 function definepandsizers() {
-
     p=Array();
-
     places.forEach(place => { // keyed representation of places for later variables retrieval
         p[place.id] = place;
     });
+    errorhandling(); // long execution, could need to make this to a promise. 
+    // Set sizers, defaulting 5 and 1 for missing values for frequency and duration
+    circlesizer = places[0].duration ? 
+        d3.scalePow().exponent(0.5).range([5, 25]).domain([
+            d3.min(places,function(d) { return +d.duration}),
+            d3.max(places,function(d) { return +d.duration})
+        ]) : function (d) {return 5;}
+    ;
+    linewidthsizer = movements[0].frequency ?
+        d3.scaleLinear().range([1, 10]).domain([
+            d3.min(movements,function(d) { return +d.frequency}),
+            d3.max(movements,function(d) { return +d.frequency})
+        ]) : function (d) {return 1;}
+    ;
+}
 
-    /// use the occation for input error handling: 
-
+function errorhandling () {
+    // movements = movements.filter(m => m.lat !== 'placeless') // error handling can add placeless places
     var placesCount = d3.nest()
         .key(function(d) { return d.id; })
         .rollup(function(v) { return v.length; })
         .entries(places);
-    console.log("placesCount", placesCount);
+    // console.log("placesCount", placesCount);
     var duplicateplaces = placesCount.filter(p => p.value > 1);
     if (duplicateplaces.length > 0) {
         var duplicateplacest = Array();
         duplicateplaces.forEach(place => { // keyed representation of places for later variables retrieval
             duplicateplacest[place.key] = place.value;
         });
-        console.log("duplicateplaces", duplicateplaces.length);
+        // console.log("duplicateplaces", duplicateplaces);
         console.log("duplicateplacest", duplicateplacest);
         alert(
             "The following place id's appear more than once. Please verify places.csv : \n\n" + 
             Object.keys(duplicateplacest).join('\n')
-            + "\nSee the documentation on ourednik.info/georecits"
+            + "\n\nSee the documentation on ourednik.info/georecits"
         );
     }
     var movementPlaces = Array();
     movements.forEach(m => { 
-        movementPlaces.push(m.source);
-        movementPlaces.push(m.target);
+        movementPlaces[m.source]={'placed':Object.keys(p).includes(m.source),'idperson':m.idperson};
+        movementPlaces[m.target]={'placed':Object.keys(p).includes(m.target),'idperson':m.idperson};
     });
     console.log("movementPlaces", movementPlaces);
-    var placelessmovements = movementPlaces.filter(m => ! Object.keys(p).includes(m));
-    if (placelessmovements.length > 0) {
-        console.log("placeless movements", placelessmovements.length);
-        console.log("duplicateplacest", placelessmovements);
+    placelessmovements = Array(); // empty it
+    Object.keys(movementPlaces).filter(key => movementPlaces[key].placed !== true).forEach(mpkey => {
+        placelessmovements[mpkey] = movementPlaces[mpkey];
+    });
+    if (Object.keys(placelessmovements).length > 0) {
+        console.log("placeless movements", placelessmovements);
         network.selectAll('*').remove();
         alert(
-            "The following movements in movements.csv refer to places without coordinates. \nPlease add these places to places.csv or remove them from your movements.csv file : \n\n" + 
-            placelessmovements.join('\n')
-            + "\n" +"See the documentation on ourednik.info/georecits"
+            `The following movements in movements.csv refer to places without coordinates:\n\n` + 
+            Object.keys(placelessmovements).join('\n')
+            + `\n\nPlease add these places to places.csv or remove them from your movements.csv file. 
+            \nSee the documentation on ourednik.info/georecits`
         );
     }
-
-    ///
-
-
-    // Set sizers, defaulting 2 and 10 for missing values for frequency and duration
-    circlesizer = places[0].duration ? 
-        d3.scalePow().exponent(0.5).range([5, 25]).domain([
-            d3.min(places,function(d) { return +d.duration}),
-            d3.max(places,function(d) { return +d.duration})
-        ]) : function (d) {return 10;}
-    ;
-    linewidthsizer = movements[0].frequency ?
-        d3.scaleLinear().range([1, 10]).domain([
-            d3.min(movements,function(d) { return +d.frequency}),
-            d3.max(movements,function(d) { return +d.frequency})
-        ]) : function (d) {return 2;}
-    ;
-
+    // console.log("places end error handling",places);
+    console.log("movements end error handling",movements);
 }
 
 function TopoView() {
@@ -287,9 +289,12 @@ function TopoView() {
             .style("font-size", "9px")
             .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) ; })
             .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) ; })
-            .style("pointer-events", "none"); // to prevent mouseover/drag capture
-
-    linecoors = function(id) {return projection([p[id].lon,p[id].lat]);}
+            .style("pointer-events", "none"); // to prevent mouseover/drag capture       
+    linecoors = function(id) {
+        if (typeof p[id] !== "undefined") {
+            return projection([p[id].lon,p[id].lat]);
+        } else return [0.5*width,0.1*height];
+    }
     topomap.append("g")
         .selectAll("line")
         .data(movements.sort(function(a, b) { return b.frequency - a.frequency; }))
@@ -301,6 +306,17 @@ function TopoView() {
             .attr("stroke", function (d) { return colorScale(d.idperson); })
             .attr("stroke-width",function (d) { return linewidthsizer( d.frequency ) ; })
     ;
+
+    if (Object.keys(placelessmovements).length > 0) {
+        topomap.append("text").text("Where is " + Object.keys(placelessmovements).join() + "?")
+            .attr("x",width/2 - Object.keys(placelessmovements).join().length * 4)
+            .attr("y",0.1*height)
+            .style("font-family", "'Monaco',monospace")
+            .style("font-size", "10px")
+            .style("font-weight", "bold")
+            .style("fill", "red")
+        ;
+    }
 
     function zoomed() {
         topomap.selectAll("g")
@@ -320,6 +336,9 @@ function TopoView() {
             .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) / d3.event.transform.k ; })
         ;
     }
+
+    console.log("places end topoview",places);
+    console.log("movements end topoview",movements);
 }
 
 function GraphView() {
@@ -343,7 +362,7 @@ function GraphView() {
             w / sumtimes,
             h / sumtimes
         );
-        console.log("sumtimes: " + sumtimes + ", multiplier: " + multiplier);
+        // console.log("sumtimes: " + sumtimes + ", multiplier: " + multiplier);
         return t * multiplier ;
     };
 
@@ -362,9 +381,20 @@ function GraphView() {
         //.force("r",d3.forceRadial(width/2).strength(0.1))
         .on('tick', ticked);
     ;
+    /*
+    Object.keys(placelessmovements).forEach(pmkey => { 
+        places.push({
+            'id':pmkey,
+            'nameplace': '[ ' + pmkey + ' ? ]',
+            'personid':placelessmovements[pmkey].idperson,
+            'lat':'placeless'
+            })
+    });
+    console.log("places + placeless movements",places);
+    */
     simulation.nodes(places);
     simulation.force('link').links(movements);
-    console.log(simulation);
+    // console.log(simulation);
     var nodes = network.selectAll('circle')
         .data(places).enter()
             .append('g')
@@ -429,6 +459,8 @@ function GraphView() {
         d3.event.subject.fx = null;
         d3.event.subject.fy = null;
     } 
+    console.log("places end graphview",places);
+    console.log("movements end graphview",movements);
 }
 
 function GraphViewGoal() {
@@ -460,29 +492,28 @@ function GraphViewGoal() {
             return d3.sum(d, function(g) {return g.duration; });
         })
         .entries(places);
-    console.log(iplaces);
+    console.log("iplaces",iplaces);
     var imovements = d3.nest()
         .key(function(d) { return d.idperson;})
         .rollup(function(d) { 
             return d3.sum(d, function(g) {return g.time; });
         })
         .entries(movements);
-    console.log(imovements);
+    console.log("iplaces",imovements);
     var individuals = iplaces.concat(imovements);
     var individuals = d3.nest()
         .key(function(d) { return d.key;})
         .rollup(function(d) { 
         return d3.sum(d, function(g) {return g.value; });
     }).entries(individuals);
-    console.log("individuals : " );
-    console.log(individuals);
+    console.log("individuals",individuals);
     var xpositions = Array();
     individuals.forEach(individual => { 
         xpositions[individual.key] = (individuals.indexOf(individual) + 1) * width / (individuals.length + 1);
     });
-    // console.log("xpositions : " + xpositions);
+    // console.log("xpositions", xpositions);
     var maxvlength = d3.max(individuals,function(d) { return +d.value});
-    console.log(maxvlength);
+    // console.log(maxvlength);
     var vscaler = function(l) {
         return (l / maxvlength) * (height*0.8);
     };
@@ -498,9 +529,9 @@ function GraphViewGoal() {
         ;
         // etaps
         var mov = movements.filter(m => m.idperson == individual.key);
-        console.log(mov);
+        // console.log(mov);
         var start = mov.filter(m => m.target == "GOAL");
-        console.log(start);
+        // console.log(start);
         var y2 = 75;
         var y1 = y2;
         while (start.length > 0) {
@@ -529,7 +560,7 @@ function GraphViewGoal() {
             ;
             y1 = y2;
             y2 = y1 + vscaler(places.filter(p => p.id == start[0].source)[0].duration);
-            console.log(y2);
+            // console.log(y2);
             network.append('line')
                 .attr("x1", xpositions[individual.key])
                 .attr("y1", y1)
@@ -550,6 +581,8 @@ function GraphViewGoal() {
             start = mov.filter(m => m.target == start[0].source);
         }
     });
+    console.log("places after goalview",places);
+    console.log("movements after goalview",movements);
 }
 
 
@@ -570,12 +603,18 @@ function saveSvg(svgEl, name) {
 
 var promiseCSVparse = function(string) {
     return new Promise(function (resolve, reject){
-        resolve(d3.csvParse(string));
+        resolve(d3.csvParse(string)); // csvparse, ulike csv does not return a promise
     });
 }
 
-
 function dropHandler(ev,zone) {
+    // Something strange is happening here: irregularly, the same run corrupts movements
+    console.log("---- DROPHANDLER ---");
+    // console.log("places begining drophanndler",places);
+    console.log("movements begining drophanndler",movements);
+    console.log("movements backup",movementsBackup);
+    movements = movementsBackup;
+    console.log("movements backup restore",movements);
     ev.preventDefault();     // Prevent default behavior (Prevent file from being opened)
     d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
     d3.select('#dropzone' + zone ).style('filter','blur(5px)');
@@ -590,37 +629,33 @@ function dropHandler(ev,zone) {
                 var reader = new FileReader();
                 reader.onload = function(event) {
                     csvcontent = event.target.result;
-                    //console.log(d3.csvParse(csvcontent));
-
                     if (zone == 1) {
-                        // console.log("direct",d3.csvParse(csvcontent)); // csvparse, ulike csv does not return a promise
+                        places = d3.csvParse(csvcontent);
+                        runprepared();
+                        /*
                         promiseCSVparse(csvcontent).then(function(pr) { // not sure if promise is needed but this is one in any case
                             places = pr;
                             runprepared();
                         });
+                        */
                     } else {
                         movements = d3.csvParse(csvcontent);
                         runprepared();
+                        /*
+                        promiseCSVparse(csvcontent).then(function(mr) { // not sure if promise is needed but this is one in any case
+                            movements = mr;
+                            runprepared();
+                        });
+                        */
                     }
 
                     function runprepared() {
                         console.log(file);
-                        // console.log("places", places);
-                        // console.log("movements", movements);
                         console.log("csvcontent", csvcontent);
-                        definepandsizers();
-                        console.log("p", p); 
-            
-                        TopoView();
-                        if (Object.keys(p).includes('GOAL')) { 
-                            GraphViewGoal();
-                        } else { 
-                            GraphView();
-                        }
+                        render();
                     }
                 };
                 reader.readAsText(file); // this calls the reader.onload
-                // console.log(reader);
             }
         }
     } else {
