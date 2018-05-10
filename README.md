@@ -11,20 +11,21 @@ GéoRécits allows you to map both in your web browser. It is written using HTML
 
 ## Online version
 
-In the newest, experimental, version, you can __drag and drop__ files to see instantly rendered maps.
-This version also gives you advice on repairing misconfigured innput data files. It is [available for oline use HERE](https://ourednik.info/georecits/v02/).
-
-You can also test the stable 01 version online [HERE (lived spaces)](https://ourednik.info/georecits/v01_livedspaces/) and [HERE (journeys)](https://ourednik.info/georecits/v01_journeys/).
+In the newest version, you can __drag and drop__ files to see _instantly rendered maps_. It also gives you advice on repairing misconfigured input data files. It is [available for oline use HERE](https://ourednik.info/georecits/v02/).
 
 ![GéoRécits spatial portrait](/img/georecits02.gif)
 
+You can also test the older 01 version online [HERE (lived spaces)](https://ourednik.info/georecits/v01_livedspaces/) and [HERE (journeys)](https://ourednik.info/georecits/v01_journeys/).
+
+
+
 ## Offline use
 
-For offline use, the version 01 and 02 both works best in _Firefox_ (v. > 54) or _MS Edge_. (_Chrome_ and _Safari_ block FetchAPI in D3 from accessing local csv and json files).
+For offline use, all versions work best in _Firefox_ (>54) or _MS Edge_. (_Chrome_ and _Safari_ block FetchAPI in D3 from accessing local csv and json files).
 
 ## Examples
 
-Example data are available in folders _/data_ (default), _/data2_ and _/data3_.
+Example data are available in folders _/data_ (default), _/data2_, _/data3_ and  _/data4_.
 
 ### Journeys
 
