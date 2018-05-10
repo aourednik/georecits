@@ -6,13 +6,16 @@
 </head>
 <body>
 <script>
+
+// d3 v 5.2.0 loaded
+
 var space;
 
 var csv1 = 
 `id,idperson,nameplace
-A,1,Prague
-B,1,Lausanne 
-C,1,Neuchâtel`
+A,1,NameA
+B,1,NameB 
+C,1,NameC`
 
 var csv2 = 
 `source,target,idperson,v1
@@ -38,11 +41,11 @@ function run() {
 				.distance(function(d) { return d.time; })
 			)
 	;
-	var places = space['places']; 
-	var movements = space['movements'];
-	simulation.nodes(places);
+	var my_nodes = space['places']; 
+	var my_links = space['movements'];
+	simulation.nodes(my_nodes);
 	// uncommenting the line below breaks space['movements'] . Why?
-	//simulation.force('link').links(movements);
+	simulation.force('link').links(my_links);
 }
 
 </script>
