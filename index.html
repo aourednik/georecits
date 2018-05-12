@@ -31,10 +31,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             bottom: 15px;
             padding:0;
             margin:0;
+            z-index: 1000;
         }
         button{
             position:fixed;
             top:20px;
+            z-index: 1000;
         }
         #maptofile{left:20px;}
         #nettofile{right:20px;}
@@ -160,7 +162,6 @@ function render(csvcontent,dropzone) {
 //~ "Zurich","Neuchatel",1,60
 //~ "Paris","Geneve",2,180`
 
-
 	var parsedcsv = d3.csvParse(csvcontent);
 	console.log("parsed csv",parsedcsv);
 	
@@ -203,7 +204,7 @@ function definepandsizers(dropzone) {
 }
 
 function errorhandling (dropzone) {
-    console.log('Error handling');
+    // console.log('Error handling');
     // console.log(typeof space['places'][0].id === 'undefined');
     if (dropzone == 1 & typeof space['places'][0].id === 'undefined') {
         alert('No id in places.csv.\nHave you uploaded the correct file to the correct zone?');
@@ -225,8 +226,7 @@ function errorhandling (dropzone) {
         duplicateplaces.forEach(place => { // keyed representation of places for later variables retrieval
             duplicateplacest[place.key] = place.value;
         });
-        // console.log("duplicateplaces", duplicateplaces);
-        console.log("duplicateplacest", duplicateplacest);
+        console.log("Duplicate places !", duplicateplacest);
         alert(
             "The following place id's appear more than once. Please verify places.csv : \n\n" + 
             Object.keys(duplicateplacest).join('\n')
@@ -257,9 +257,10 @@ function errorhandling (dropzone) {
     console.log("space end error handling",space);
 }
 
+
+/////////////////////////////////////////////////
+// Topographic view.
 function TopoView() {
-    /////////////////////////////////////////////////
-    // Topographic view.
 
     topomap.selectAll('*').remove();
 
@@ -279,13 +280,12 @@ function TopoView() {
         ));
     scale = scale * 0.8 * s;
 
-    var projection = 
-         d3.geoMercator() 
-            .precision(0.1)
-            .scale(scale)
-            .center(center)
-            .translate(offset)
-        ;
+    var projection = d3.geoMercator() // automatic centering has trouble with the more fun polyedric projections
+        .precision(0.1)
+        .scale(scale)
+        .center(center)
+        .translate(offset)
+    ;
 
     var path = d3.geoPath().projection(projection);
 
@@ -313,7 +313,6 @@ function TopoView() {
             .attr("fill", function (d) { return colorScale(d.idperson);})
             .attr("fill-opacity", 0.7)
     ;
-
     topomap.append("g")
         .selectAll("text")
         .data(space['places'])
@@ -325,7 +324,8 @@ function TopoView() {
             .style("font-size", "9px")
             .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) ; })
             .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) ; })
-            .style("pointer-events", "none"); // to prevent mouseover/drag capture       
+            .style("pointer-events", "none") // to prevent mouseover/drag capture 
+    ;       
     linecoors = function(id) {
         if (typeof p[id] !== "undefined") {
             return projection([p[id].lon,p[id].lat]);
@@ -350,7 +350,7 @@ function TopoView() {
             .style("font-family", "'Monaco',monospace")
             .style("font-size", "10px")
             .style("font-weight", "bold")
-            .style("fill", "red")
+            // .style("fill", "red")
         ;
     }
 
@@ -375,16 +375,17 @@ function TopoView() {
     console.log("space end topoview",space);
 }
 
+/////////////////////////////////////////////////
+// Graph view 1 : force-directed --------------------------------
 function GraphView() {
-    /////////////////////////////////////////////////
-    // GRAPH VIEW 1 --------------------------------
 
     d3.select("#sqrtscale").style( "visibility", "visible");
     network.selectAll('*').remove();
 
-    // even if we make a local copy of space['places'] and space['movements'], 
-    // functions like simulation.force('link').links(space['movements']) modify the orginal matrix
+    // Even if we make a local copy of space['places'] and space['movements'], 
+    // functions like simulation.force('link').links(space['movements']) modify the orginal space object
     // adding data from trom places to movements.csv making it unusable for other visuals
+    // This is standard javascript behavior. The orkaround is to make a deep copy of the object
     var places = JSON.parse(JSON.stringify(space['places'])) ; 
     var movements = JSON.parse(JSON.stringify(space['movements']));
 
@@ -435,7 +436,16 @@ function GraphView() {
 
     simulation.nodes(places);
     simulation.force('link').links(movements); // Do not apply this directly to space['movements']: it changes the original array!
-    // console.log(simulation);
+
+    // draw the lines first, we want them below circles the background
+    var links = network.selectAll('lines')
+        .data(movements)
+        .enter()
+            .append("line")
+            .attr("stroke", function (d) { return colorScale(d.idperson); })
+            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency); })
+    ;
+
     var nodes = network.selectAll('circle')
         .data(places).enter()
             .append('g')
@@ -446,9 +456,10 @@ function GraphView() {
                 );
     ;
     nodes.append('circle')
-            .attr('r', function (d) { return circlesizer(d.duration); })
-            .attr('stroke','none')
-            .attr('fill',function (d) { return colorScale(d.idperson);})
+        .attr('r', function (d) { return circlesizer(d.duration); })
+        .attr('stroke','none')
+        .attr('fill',function (d) { return colorScale(d.idperson);})
+        .attr("fill-opacity", 0.9)
     ;
     nodes.append("text")
         .text(function(d) { return d.nameplace; })
@@ -457,15 +468,8 @@ function GraphView() {
         .style("font-size", "9px")
         .attr("x", function (d) { return  (circlesizer(d.duration)/1.414) ; })
         .attr("y", function (d) { return -  (circlesizer(d.duration)/1.414) ; })
-        .style("pointer-events", "none"); // to prevent mouseover/drag capture
-
-    var links = network.selectAll('lines')
-        .data(movements)
-        .enter()
-            .append("line")
-            .attr("stroke", function (d) { return colorScale(d.idperson); })
-            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency); })
-    ;
+        .style("pointer-events", "none") // to prevent mouseover/drag capture
+        .style("z-index",100); // SVG 2.0 property. Bugged in Firefox for now.
 
     function ticked() {
         
@@ -477,13 +481,15 @@ function GraphView() {
                 Math.max(25, Math.min(height - 25, d.y))
             +")"})
         ;
-        // links just follow the nodes
+
+        // links just follow the nodes, since simulation.force('link').links(movements) has replaced all source and target values in movements with identified object in places
         links
             .attr("x1", function(d) { return Math.max(25, Math.min(width - 25, d.source.x)); })
             .attr("y1", function(d) { return Math.max(25, Math.min(height - 25, d.source.y)); })
             .attr("x2", function(d) { return Math.max(25, Math.min(width - 25, d.target.x)); })
             .attr("y2", function(d) { return Math.max(25, Math.min(height - 25, d.target.y)); })
         ;
+
     }
 
     function dragstarted() {
@@ -502,9 +508,10 @@ function GraphView() {
     } 
 }
 
+
+/////////////////////////////////////////////////
+// GRAPH VIEW 2 : common GOAL, vertical time ---------
 function GraphViewGoal() {
-    /////////////////////////////////////////////////
-    // GRAPH VIEW GOAL --------------------------------
 
     d3.select("#sqrtscale").style( "visibility", "hidden");
     network.selectAll('*').remove();
@@ -620,10 +627,11 @@ function GraphViewGoal() {
             start = mov.filter(m => m.target == start[0].source);
         }
     });
-    // console.log("places after goalview",places);
-    console.log("movements after goalview",movements);
+    // console.log("space after goalview",space);
 }
 
+/////////////////////////////////////////////////
+// Export graphics as SVG.
 function saveSvg(svgEl, name) {
     var svgEl = document.getElementById(svgEl);
     svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -639,12 +647,12 @@ function saveSvg(svgEl, name) {
     document.body.removeChild(downloadLink);
 }
 
+/////////////////////////////////////////////////
+// Export graphics as SVG.
 function dropHandler(ev,zone) {
-    // Something strange is happening here: irregularly, the same run corrupts movements
-    console.log("---- DROPHANDLER ---");
-    // console.log("places begining drophanndler",places);
-    console.log("movements begining drophanndler",space);
     ev.preventDefault();     // Prevent default behavior (Prevent file from being opened)
+    console.log("---- DROPHANDLER ---");
+    console.log("movements begining drophanndler",space);
     d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
     d3.select('#dropzone' + zone ).style('filter','blur(5px)');
     var csvcontent, file;
@@ -667,7 +675,7 @@ function dropHandler(ev,zone) {
             }
         }
     } else {
-        // Use DataTransfer interface to access the file(s)
+        // TODO : fallback: Use DataTransfer interface to access the file(s)
         for (var i = 0; i < ev.dataTransfer.files.length; i++) {
             console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
         }
