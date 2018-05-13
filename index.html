@@ -40,19 +40,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         }
         #maptofile{left:20px;}
         #nettofile{right:20px;}
-        .dropzone {
+        .dropzone, .dropzonebottom {
             font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana;
             font-size:11px;
             position:fixed;
             color:lightgrey;
             left: 50%;
             transform: translateX(-50%);    
-            top:17px;
             width: 60%;
             text-align: center;
             z-index:1000;
         }
-        #dropzone1, #dropzone2 {
+        .dropzone {
+            top:17px;
+        }
+        .dropzonebottom {   
+            bottom:37px;
+        }
+        #dropzone1, #dropzone2, #dropzone3 {
             position: absolute;
             width:45%;
             padding: 3px;
@@ -62,7 +67,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         }
         #dropzone1 {left:0;}
         #dropzone2 {right:0;}
-        #dropzone1text, #dropzone2text {
+        #dropzone1text, #dropzone2text, #dropzone3text {
             position: absolute;
             width:45%;
             padding: 6px;
@@ -70,6 +75,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         }
         #dropzone1text {left:0;}
         #dropzone2text {right:0;}
+        #dropzone3 {left:0;}
+        #dropzone3text {left:0;}
         #topomap {
             position:fixed;
             top:5px;
@@ -103,9 +110,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <div class="dropzone" >
     <div id="dropzone1"></div>
     <div id="dropzone2"></div>
-    <div id="dropzone1text" ondrop="dropHandler(event,1);" ondragover="dragOverHandler(event,1);" ondragleave="dragLeaveHandler(event,1)">Drag places.csv here...</div>
-    <div id="dropzone2text" ondrop="dropHandler(event,2);" ondragover="dragOverHandler(event,2);" ondragleave="dragLeaveHandler(event,2)">Drag movements.csv here...</div>
+    <div id="dropzone1text" ondrop="dropHandler(event,1);" ondragover="dragOverHandler(event,1);" ondragleave="dragLeaveHandler(event,1)">Drag <i>places.csv</i> here...</div>
+    <div id="dropzone2text" ondrop="dropHandler(event,2);" ondragover="dragOverHandler(event,2);" ondragleave="dragLeaveHandler(event,2)">Drag <i>movements.csv</i> here...</div>
 </div>
+<div class="dropzonebottom" >
+    <div id="dropzone3"></div>
+    <div id="dropzone3text" ondrop="dropHandler(event,3);" ondragover="dragOverHandler(event,3);" ondragleave="dragLeaveHandler(event,3)">Drag <i>basemap.geojson</i> here...</div>
+</div> 
 <div id="sqrtscale">√ line length <input type="checkbox" id="myCheck" onclick="GraphView()"></div>
 <svg id="topomap"></svg>
 <svg id="network"></svg>
@@ -125,7 +136,7 @@ var network = d3.select("#network")
     .attr("width",width)
     .attr("height",height);
 var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-var circlesizer, linewidthsizer, placesmovements, basemap, p, placelessmovements = Array();
+var circlesizer, linewidthsizer, placesmovements, basemap, p, placelessmovements = Array(), pojection, transform;
 var sqrtscale = false; // this is for the network
 
 function uppercaseKeys(d) {
@@ -150,36 +161,45 @@ Promise.all([
 	};
     // spacebackup = JSON.parse(JSON.stringify(space)); // a untouchable clone of space
     basemap = bas;
-    render("",0);
+    render("",0); // the csv content is empty on startup
 });
 
-function render(csvcontent,dropzone) {
+function render(filecontent,dropzone) {
 
-//~ var csvcontent = 
+//~ var filecontent = 
 //~ `source,target,idperson,time
 //~ "Khovsgol","OulanBator",1,540
 //~ "OulanBator","Zurich",1,1200
 //~ "Zurich","Neuchatel",1,60
 //~ "Paris","Geneve",2,180`
 
-	var parsedcsv = d3.csvParse(csvcontent);
-	console.log("parsed csv",parsedcsv);
-	
-	if (dropzone == 1) {space['places'] = parsedcsv;}
-    else if (dropzone == 2) {space['movements'] = parsedcsv;}
+    if (dropzone == 1 | dropzone == 2) {
+        var parsedcsv = d3.csvParse(filecontent);
+        console.log("parsed csv",parsedcsv);
+        if (dropzone == 1) {space['places'] = parsedcsv;}
+        else if (dropzone == 2) {space['movements'] = parsedcsv;}
+    } else if (dropzone == 3) {
+        try {
+            basemap = JSON.parse(filecontent);
+        } catch(e) {
+            alert("The basemap you have uploaded does not appear to be in GeoJSON format\n\n" + e); 
+        }  
+    }
 	
     console.log("space",space);
     definepandsizers(dropzone);
-    TopoView();
-    var targets = Array();
-    space['movements'].forEach(movement => { // keyed representation of places for later variables retrieval
-        targets.push(movement.target);
-    });
-    console.log("targets",targets);
-    if (Object.keys(p).includes('GOAL') & targets.includes('GOAL') ) { 
-        GraphViewGoal();
-    } else { 
-        GraphView();
+    TopoView(dropzone);
+    if (dropzone != 3) { // on changed basemap, no need to redraw network view
+        var targets = Array();
+        space['movements'].forEach(movement => { // keyed representation of places for later variables retrieval
+            targets.push(movement.target);
+        });
+        // console.log("targets",targets);
+        if (Object.keys(p).includes('GOAL') & targets.includes('GOAL') ) { 
+            GraphViewGoal();
+        } else { 
+            GraphView();
+        }
     }
 }
 
@@ -188,7 +208,7 @@ function definepandsizers(dropzone) {
     space['places'].forEach(place => { // keyed representation of places for later variables retrieval
         p[place.id] = place;
     });
-    console.log("p",p);
+    // console.log("p",p);
     errorhandling(dropzone); // long execution, could need to make this to a promise. 
     // Set sizers, defaulting 5 and 1 for missing values for frequency and duration
     circlesizer = space['places'][0].duration ? 
@@ -205,7 +225,6 @@ function definepandsizers(dropzone) {
 
 function errorhandling (dropzone) {
     // console.log('Error handling');
-    // console.log(typeof space['places'][0].id === 'undefined');
     if (dropzone == 1 & typeof space['places'][0].id === 'undefined') {
         alert('No id in places.csv.\nHave you uploaded the correct file to the correct zone?');
         throw new Error("places.csv in incorrect format!");
@@ -238,12 +257,12 @@ function errorhandling (dropzone) {
         movementPlaces[m.source]={'placed':Object.keys(p).includes(m.source),'idperson':m.idperson};
         movementPlaces[m.target]={'placed':Object.keys(p).includes(m.target),'idperson':m.idperson};
     });
-    console.log("movementPlaces", movementPlaces);
+    // console.log("movementPlaces", movementPlaces);
     placelessmovements = Array(); // empty it
     Object.keys(movementPlaces).filter(key => movementPlaces[key].placed !== true).forEach(mpkey => {
         placelessmovements[mpkey] = movementPlaces[mpkey];
     });
-    console.log("placeless movements", placelessmovements);
+    // console.log("placeless movements", placelessmovements);
     if (Object.keys(placelessmovements).length > 0) {
         console.log("placeless movements", placelessmovements);
         network.selectAll('*').remove();
@@ -254,43 +273,48 @@ function errorhandling (dropzone) {
             \nSee the documentation on ourednik.info/georecits`
         );
     }
-    console.log("space end error handling",space);
+    // console.log("space end error handling",space);
 }
 
 
 /////////////////////////////////////////////////
 // Topographic view.
-function TopoView() {
+function TopoView(dropzone) {
+
+    // console.log("TOPOVIEW")
+    // if (transform != null) { console.log("d3 zoom transform", transform); }
 
     topomap.selectAll('*').remove();
 
-    var minlon = d3.min(space['places'],function(d) { return +d.lon});
-    var minlat = d3.min(space['places'],function(d) { return +d.lat});
-    var maxlon = d3.max(space['places'],function(d) { return +d.lon});
-    var maxlat = d3.max(space['places'],function(d) { return +d.lat});
-    var clon = (minlon+maxlon) / 2;
-    var clat = (minlat+maxlat) / 2;
+    if (dropzone != 3) { // no need to redefine projection if replaced basemap
+        var minlon = d3.min(space['places'],function(d) { return +d.lon});
+        var minlat = d3.min(space['places'],function(d) { return +d.lat});
+        var maxlon = d3.max(space['places'],function(d) { return +d.lon});
+        var maxlat = d3.max(space['places'],function(d) { return +d.lat});
+        var clon = (minlon+maxlon) / 2;
+        var clat = (minlat+maxlat) / 2;
 
-    var center = [clon,clat]  // in spherical coordinates, normaly
-    var offset = [width/2, height/2];
-    var scale  = (width - 1) / 2 / Math.PI; // shows the whole world
-    s = (Math.min(
-            360/Math.abs(Math.abs(minlon)-Math.abs(maxlon)),
-            180/Math.abs(Math.abs(minlat)-Math.abs(maxlat))
-        ));
-    scale = scale * 0.8 * s;
+        var center = [clon,clat]  // in spherical coordinates, normaly
+        var offset = [width/2, height/2];
+        var scale  = (width - 1) / 2 / Math.PI; // shows the whole world
+        s = (Math.min(
+                360/Math.abs(Math.abs(minlon)-Math.abs(maxlon)),
+                180/Math.abs(Math.abs(minlat)-Math.abs(maxlat))
+            ));
+        scale = scale * 0.8 * s;
 
-    var projection = d3.geoNaturalEarth1()// automatic centering has trouble with the more fun polyedric projections
-        .precision(0.1)
-        .scale(scale)
-        .center(center)
-        .translate(offset)
-    ;
+        projection = d3.geoNaturalEarth1()// automatic centering has trouble with the more fun polyedric projections
+            .precision(0.1)
+            .scale(scale)
+            .center(center)
+            .translate(offset)
+        ;
+    }
 
     var path = d3.geoPath().projection(projection);
 
     var zoom = d3.zoom()
-        .scaleExtent([0.2, 30])
+        .scaleExtent([0.2, 100])
         .on("zoom", zoomed);
 
     topomap.call(zoom);
@@ -354,25 +378,30 @@ function TopoView() {
         ;
     }
 
+    if (dropzone == 3 & typeof transform != 'undefined') {
+        zoom.transform(topomap, transform);
+        dropzone = 0; // not necessary, but just to make sure.
+    }
+
     function zoomed() {
+        transform = d3.event.transform;
         topomap.selectAll("g")
-            .attr("transform", d3.event.transform) 
-            .style("stroke-width", 1 / d3.event.transform.k + "px")
+            .attr("transform", transform) 
+            .style("stroke-width", 1 / transform.k + "px")
         ;
         topomap.selectAll("g").selectAll("line")
-            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency) / d3.event.transform.k; })
+            .attr("stroke-width",function (d) { return linewidthsizer(d.frequency) / transform.k; })
         ;
         topomap.selectAll("g").selectAll("circle") // keep circles the same size
-            // .attr("r",function(d) {return d3.select(this).attr("r") - d3.event.transform.k;}) // selector works but function does not :-)
-            .attr("r",function(d) {return circlesizer(d.duration) / d3.event.transform.k;})
+            .attr("r",function(d) {return circlesizer(d.duration) / transform.k;})
         ;
         topomap.selectAll("g").selectAll("text")
-            .style("font-size", 9 / d3.event.transform.k + "px")
-            .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) / d3.event.transform.k ; })
-            .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) / d3.event.transform.k ; })
+            .style("font-size", 9 / transform.k + "px")
+            .attr("x", function (d) { return projection([d.lon,d.lat])[0] + (circlesizer(d.duration)/1.414) / transform.k ; })
+            .attr("y", function (d) { return projection([d.lon,d.lat])[1] - (circlesizer(d.duration)/1.414) / transform.k ; })
         ;
     }
-    console.log("space end topoview",space);
+    // console.log("space end topoview",space);
 }
 
 /////////////////////////////////////////////////
@@ -652,10 +681,10 @@ function saveSvg(svgEl, name) {
 function dropHandler(ev,zone) {
     ev.preventDefault();     // Prevent default behavior (Prevent file from being opened)
     console.log("---- DROPHANDLER ---");
-    console.log("movements begining drophanndler",space);
+    // console.log("movements begining drophanndler",space);
     d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
     d3.select('#dropzone' + zone ).style('filter','blur(5px)');
-    var csvcontent, file;
+    var filecontent, file;
     if (ev.dataTransfer.items) {
         // Use DataTransferItemList interface to access the file(s)
         for (var i = 0; i < ev.dataTransfer.items.length; i++) {
@@ -665,11 +694,11 @@ function dropHandler(ev,zone) {
                 // console.log('... file[' + i + '].name = ' + file.name);
                 var reader = new FileReader();
                 reader.onload = function(event) {
-                    csvcontent = event.target.result;
-                    console.log("dropzone",zone);
+                    filecontent = event.target.result;
+                    // console.log("dropzone",zone);
 					console.log(file);
-					console.log("csvcontent", csvcontent);
-					render(csvcontent,zone);
+					// console.log("file content", filecontent);
+					render(filecontent,zone);
                 };
                 reader.readAsText(file); // this calls the reader.onload
             }

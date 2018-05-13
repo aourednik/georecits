@@ -8,6 +8,8 @@
 <script>
 
 // d3 v 5.2.0 loaded
+// Beware of the following trap, due to javascript copying the pointer, 
+// not the data of an an object when using the '=' sign.
 
 var space;
 
@@ -41,11 +43,18 @@ function run() {
 				.distance(function(d) { return d.time; })
 			)
 	;
-	var my_nodes = space['places']; 
-	var my_links = space['movements'];
-	simulation.nodes(my_nodes);
-	// uncommenting the line below breaks space['movements'] . Why?
+	// Beware, uncommenting the lines below breaks space['movements'] when applying simulation force to links. This is standard javascript behavior
+	// var my_nodes = space['places']; 
+	// var my_links = space['movements'];
+	// simulation.nodes(my_nodes);
 	// simulation.force('link').links(my_links);
+
+	// Workaround: copy the object's data instead of the pointer :
+	var my_nodes = JSON.parse(JSON.stringify(space['places'])) ; 
+    var my_links = JSON.parse(JSON.stringify(space['movements']));
+	simulation.nodes(my_nodes);
+	simulation.force('link').links(my_links);
+
 }
 
 </script>
