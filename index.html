@@ -136,7 +136,7 @@ var network = d3.select("#network")
     .attr("width",width)
     .attr("height",height);
 var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-var circlesizer, linewidthsizer, placesmovements, basemap, p, placelessmovements = Array(), pojection, transform;
+var circlesizer, linewidthsizer, placesmovements, basemap, p, placelessmovements = Array(), pojection, dropzone = 0;
 var sqrtscale = false; // this is for the network
 
 function uppercaseKeys(d) {
@@ -161,10 +161,10 @@ Promise.all([
 	};
     // spacebackup = JSON.parse(JSON.stringify(space)); // a untouchable clone of space
     basemap = bas;
-    render("",0); // the csv content is empty on startup
+    render(""); // the csv content is empty on startup
 });
 
-function render(filecontent,dropzone) {
+function render(filecontent) {
 
 //~ var filecontent = 
 //~ `source,target,idperson,time
@@ -182,13 +182,19 @@ function render(filecontent,dropzone) {
         try {
             basemap = JSON.parse(filecontent);
         } catch(e) {
-            alert("The basemap you have uploaded does not appear to be in GeoJSON format\n\n" + e); 
+            var errtext = "The basemap you have uploaded does not appear to be in GeoJSON format\n\n";
+            alert(errtext + e); 
+            throw new Error(errtext + e);
         }  
     }
-	
+    
+    space['places'] = space['places'].filter(sp => sp.id != '' & typeof sp.id != 'undefined'); // empty places can be produced by empty lines in the csv. This filters them out.  
+    space['movements'] = space['movements'].filter(sm => sm.source != '' & typeof sm.source != 'undefined'); // empty places can be produced by empty lines in the csv. This filters them out.  
+
+
     console.log("space",space);
-    definepandsizers(dropzone);
-    TopoView(dropzone);
+    definepandsizers();
+    TopoView();
     if (dropzone != 3) { // on changed basemap, no need to redraw network view
         var targets = Array();
         space['movements'].forEach(movement => { // keyed representation of places for later variables retrieval
@@ -203,13 +209,13 @@ function render(filecontent,dropzone) {
     }
 }
 
-function definepandsizers(dropzone) {
+function definepandsizers() {
     p=Array();
     space['places'].forEach(place => { // keyed representation of places for later variables retrieval
         p[place.id] = place;
     });
     // console.log("p",p);
-    errorhandling(dropzone); // long execution, could need to make this to a promise. 
+    errorhandling(); // long execution, could need to make this to a promise. 
     // Set sizers, defaulting 5 and 1 for missing values for frequency and duration
     circlesizer = space['places'][0].duration ? 
         d3.scalePow().exponent(0.5).range([5, 25]).domain(
@@ -223,14 +229,14 @@ function definepandsizers(dropzone) {
     ;
 }
 
-function errorhandling (dropzone) {
+function errorhandling () {
     // console.log('Error handling');
-    if (dropzone == 1 & typeof space['places'][0].id === 'undefined') {
-        alert('No id in places.csv.\nHave you uploaded the correct file to the correct zone?');
+    if (dropzone == 1 & typeof space['places'][0] === 'undefined') { // we have filtered out all places without id before
+        alert('No “id” column in places.csv.\n\nHave you uploaded the correct file to the correct zone?\n\nSee the documentation on https://ourednik.info/georecits');
         throw new Error("places.csv in incorrect format!");
     }
-    if (dropzone == 2 & typeof space['movements'][0].source === 'undefined') {
-        alert('No source field in movements.csv.\nHave you uploaded the correct file to the correct zone?');
+    if (dropzone == 2 & typeof space['movements'][0] === 'undefined') {
+        alert('No “source” column in movements.csv.\n\nHave you uploaded the correct file to the correct zone?\n\nSee the documentation on https://ourednik.info/georecits');
         throw new Error("movements.csv in incorrect format!");
     }
 
@@ -279,7 +285,7 @@ function errorhandling (dropzone) {
 
 /////////////////////////////////////////////////
 // Topographic view.
-function TopoView(dropzone) {
+function TopoView() {
 
     // console.log("TOPOVIEW")
     // if (transform != null) { console.log("d3 zoom transform", transform); }
@@ -423,14 +429,15 @@ function GraphView() {
             'id':pmkey,
             'nameplace': '[ ' + pmkey + ' ? ]',
             'personid':placelessmovements[pmkey].idperson,
-            'lat':'placeless'
-            })
+            'lat':'placeless',
+            'duration':0
+        })
     });
 
     places = places.filter(pl => typeof pl.id !== 'undefined');
 
-    console.log("places",places);
-    console.log("movements",movements);
+    // console.log("places",places);
+    // console.log("movements",movements);
 
     var linesizer = function(tm) {
         sqrtscale = document.getElementById("myCheck").checked;
@@ -590,7 +597,7 @@ function GraphViewGoal() {
     var maxvlength = d3.max(individuals,function(d) { return +d.value});
     // console.log(maxvlength);
     var vscaler = function(l) {
-        return (l / maxvlength) * (height*0.8);
+        return (l / maxvlength) * (height*0.75);
     };
 
     individuals.forEach(individual => { 
@@ -677,11 +684,11 @@ function saveSvg(svgEl, name) {
 }
 
 /////////////////////////////////////////////////
-// Export graphics as SVG.
+// Drag and drop data into the interface.
 function dropHandler(ev,zone) {
     ev.preventDefault();     // Prevent default behavior (Prevent file from being opened)
     console.log("---- DROPHANDLER ---");
-    // console.log("movements begining drophanndler",space);
+    dropzone = zone;
     d3.select('#dropzone' + zone + 'text').style('font-weight','normal');   
     d3.select('#dropzone' + zone ).style('filter','blur(5px)');
     var filecontent, file;
@@ -695,10 +702,9 @@ function dropHandler(ev,zone) {
                 var reader = new FileReader();
                 reader.onload = function(event) {
                     filecontent = event.target.result;
-                    // console.log("dropzone",zone);
 					console.log(file);
 					// console.log("file content", filecontent);
-					render(filecontent,zone);
+					render(filecontent);
                 };
                 reader.readAsText(file); // this calls the reader.onload
             }
@@ -709,7 +715,7 @@ function dropHandler(ev,zone) {
             console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
         }
     } 
-    removeDragData(ev) // Pass event to removeDragData for cleanup
+    removeDragData(ev, zone) // Pass event to removeDragData for cleanup
 }
 function dragOverHandler(ev,zone) {
     ev.preventDefault(); // Prevent default behavior (Prevent file from being opened as such by the browser)
@@ -723,7 +729,7 @@ function dragLeaveHandler(ev,zone) {
 }
 function removeDragData(ev,zone) {
     if (ev.dataTransfer.items) {
-        ev.dataTransfer.items.clear();// Use DataTransferItemList interface to remove the drag data
+        ev.dataTransfer.items.clear(); // Use DataTransferItemList interface to remove the drag data
     } else {
         ev.dataTransfer.clearData(); // Use DataTransfer interface to remove the drag data
     }

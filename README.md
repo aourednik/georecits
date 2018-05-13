@@ -13,11 +13,9 @@ GéoRécits allows you to map both in your web browser. It is written using HTML
 
 In the newest version, you can __drag and drop__ files to see _instantly rendered maps_. It also gives you advice on repairing misconfigured input data files. It is [available for online use HERE](https://ourednik.info/georecits/v02/).
 
-![GéoRécits spatial portrait](/img/georecits02.gif)
+![GéoRécits spatial portrait](/img/georecits5.gif)
 
 You can also test the older 01 version online [HERE (lived spaces)](https://ourednik.info/georecits/v01_livedspaces/) and [HERE (journeys)](https://ourednik.info/georecits/v01_journeys/).
-
-
 
 ## Offline use
 
