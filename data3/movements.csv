@@ -1,9 +1,0 @@
-source,target,idperson,time,frequency
-"Lausanne","UNIL",1,30,160
-"UNIL","Geneve",1,65,1
-"Lausanne","Paris",1,300,1
-"Lausanne","Vevey",1,40,3
-"Lausanne","Poitiers",1,600,1
-"Lausanne","Fribourg",1,60,2
-"Lausanne","London",1,720,1
-"UNIL","Fribourg",1,60,2

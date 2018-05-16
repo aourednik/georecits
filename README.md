@@ -23,7 +23,7 @@ For offline use, all versions work best in _Firefox_ (>54) or _MS Edge_. (_Chrom
 
 ## Examples
 
-Example data are available in folders _/data_ (default), _/data2_, _/data3_ and  _/data4_.
+Example data are available in the _/data_ and _/exampledata_ folders.
 
 ### Journeys
 

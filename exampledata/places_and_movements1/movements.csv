@@ -1,0 +1,14 @@
+source,target,idperson,time,frequency
+Lausanne,Prague,1,240,2
+Lausanne,Neuchatel,1,60,10
+Lausanne,Geneve,1,50,3
+Lausanne,Bern,1,60,150
+Lausanne,Zurich,1,120,7
+Zurich,Oslo,1,300,1
+Zurich,OulanBator,1,1200,1
+OulanBator,Khovsgol,1,540,1
+Khovsgol,Tsagaannuur,1,2880,1
+Lausanne,EPFL,1,30,10
+Zurich2,Lausanne2,2,300,2
+Zurich2,Neuchatel,2,60,3
+Zurich2,Paris,2,500,3
