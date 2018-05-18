@@ -1,0 +1,46 @@
+id,idperson,nameplace,duration,lat,lon
+Röcken,Nietzsche,"Röcken",6,51.2411, 12.1154
+Naumburg,Nietzsche,"Naumburg (Saale)",19.1,51.15, 11.8125 
+NaumburgDomgymnasium,Nietzsche,"Naumburg (Domgymnasium)",0.47,51.156378, 11.812510
+Schulpforta,Nietzsche,"Schulpforta Naumburg",1.5,51.1425, 11.752222
+Jena,Nietzsche,"Jena",0.1,50.928084, 11.586944
+Gorenzen,Nietzsche,"Gorenzen",0.1,51.567121, 11.353730
+Bonn,Nietzsche,"Bonn",1,50.733889, 7.102222
+Meiningen,Nietzsche,"Meiningen",0.1,50.568631, 10.416465
+Leipzig,Nietzsche,"Leipzig",2.4,51.338889, 12.378889
+Basel,Nietzsche,"Basel",10,47.558611, 7.583611
+Tribschen,Nietzsche,"Tribschen (Wagner's villa)",0.1,47.041982, 8.329703
+Clarens,Nietzsche,"Clarens (bath)",0.1,46.441677, 6.893987
+Maderanertal,Nietzsche,"Maderanertal",0.1,46.772009, 8.755322
+GotthardPass,Nietzsche,"Gotthard Pass",0.01, 46.558658, 8.563021
+Lugano,Nietzsche,"Lugano",0.11,46.003445, 8.951783
+Gimmelwald,Nietzsche,"Gimmelwald (mit Schwester)",0.01,46.546944, 7.892755
+Silvaplana,Nietzsche,"Silvaplana-Surlej",0.3,46.450564, 9.806179
+Livorno,Nietzsche,"Livorno",0.1,43.551677, 10.306694
+Sorrento,Nietzsche,"Sorrento",0.7,40.625476, 14.382658
+Napoli,Nietzsche,"Napoli",0.3,40.847002, 14.265761
+Milano,Nietzsche,"Milano",0.01,45.465704, 9.191059
+BadRagaz,Nietzsche,"Bad Ragaz",0.1,47.005502, 9.501057
+Rosenlaui,Nietzsche,"Rosenlaui",0.3,46.679959, 8.153436
+Kösen,Nietzsche,"Kösen Bahnhof (betrunken mit Richter)",0.01,51.1306, 11.7183
+Schwelm,Nietzsche,"Schwelm (Konzert)",0.01,51.2845, 7.2926
+Bayreuth,Nietzsche,"Bayreuth",0.01,49.944,11.5744
+Bex,Nietzsche,"Bex",0.01,46.248582, 7.006387
+Geneve,Nietzsche,"Genève",0.01,46.2025, 6.147
+StMoritz,Nietzsche,"StMoritz",0.3,46.487518, 9.833729
+Riva,Nietzsche,"Riva",0.01, 45.884303, 10.841149
+Venezia,Nietzsche,"Venezia",0.32,45.4377, 12.3255
+Marienbad,Nietzsche,"Marienbad",0.3,49.96, 12.6931
+Genova,Nietzsche,"Genova",2,44.408, 8.9321
+Stresa,Nietzsche,"Stresa",0.01,45.884038, 8.527900
+Sils-Maria,Nietzsche,"Sils-Maria",1.8,46.4295,9.7638
+Messina,Nietzsche,"Messina",0.03, 38.192070, 15.554910
+Taormina,Nietzsche,"Taormina",0.01,37.853574,15.288640
+Roma,Nietzsche,"Roma",0.1,41.8941,12.4816
+Rapallo,Nietzsche,"Rapallo",0.3,44.3494,9.2311
+Nice,Nietzsche,"Nice",2,43.6971,7.2751
+Zürich,Nietzsche,"Zürich",0.01,47.3749,8.5437
+Menton,Nietzsche,"Menton",0.1,43.776,7.5076
+Ruta,Nietzsche,"Ruta",0.1,44.3493,9.1547   
+Torino,Nietzsche,"Torino",0.5,45.0717,7.6798
+Weimar,Nietzsche,"Weimar",3,50.9815,11.3282
