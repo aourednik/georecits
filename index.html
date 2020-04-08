@@ -165,6 +165,7 @@ Promise.all([
 });
 
 function render(filecontent) {
+    filecontent = filecontent.replace(/;/g,",").replace(/, /g,",");
 
 //~ var filecontent = 
 //~ `source,target,idperson,time
@@ -190,7 +191,6 @@ function render(filecontent) {
     
     space['places'] = space['places'].filter(sp => sp.id != '' & typeof sp.id != 'undefined'); // empty places can be produced by empty lines in the csv. This filters them out.  
     space['movements'] = space['movements'].filter(sm => sm.source != '' & typeof sm.source != 'undefined'); // empty places can be produced by empty lines in the csv. This filters them out.  
-
 
     console.log("space",space);
     definepandsizers();
